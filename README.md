@@ -6,7 +6,7 @@ a no fluff, minimalistic, zero-copy xml writer for Rust.
 
 ```rust
 extern crate xml_writer;
-use xml_writer::::XmlWriter;
+use xml_writer::XmlWriter;
 
 let mut xml = XmlWriter::new(Vec::new()); // supply any Writer, preferrably BufferedWriter
 xml.begin_elem("root");
