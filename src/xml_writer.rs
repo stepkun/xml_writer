@@ -16,16 +16,18 @@ pub struct XmlWriter<'a, W: Write> {
     writer: Box<W>,
     opened: bool,
     /// if `true` it will indent all opening elements
-    pub pretty: bool,
+    pretty: bool,
     /// an XML namespace that all elements will be part of, unless `None`
     pub namespace: Option<&'a str>,
     /// includes `pretty`, additional:
     /// - puts closing elements into own line
     /// - elements without children are self-closing
-    /// - indentation with 4 spaces
+    /// - indentation with single tab
     very_pretty: bool,
     /// if `true` current elem has children
     children: bool,
+    /// newline indicator
+    newline: bool
 }
 
 impl<'a, W: Write> fmt::Debug for XmlWriter<'a, W> {
@@ -39,8 +41,23 @@ impl<'a, W: Write> fmt::Debug for XmlWriter<'a, W> {
 }
 
 impl<'a, W: Write> XmlWriter<'a, W> {
-    /// Create a new writer, by passing an `io::Write`
-    pub fn new(writer: W) -> XmlWriter<'a, W> {
+    /// Create a new writer with `compact` output
+    pub fn compact(writer: W) -> XmlWriter<'a, W> {
+        XmlWriter {
+            stack: Vec::new(),
+            ns_stack: Vec::new(),
+            writer: Box::new(writer),
+            opened: false,
+            pretty: false,
+            namespace: None,
+            very_pretty: false,
+            children: false,
+            newline: false,
+        }
+    }
+
+    /// Create a new writer with `pretty` output
+    pub fn pretty(writer: W) -> XmlWriter<'a, W> {
         XmlWriter {
             stack: Vec::new(),
             ns_stack: Vec::new(),
@@ -50,11 +67,12 @@ impl<'a, W: Write> XmlWriter<'a, W> {
             namespace: None,
             very_pretty: false,
             children: false,
+            newline: false,
         }
     }
 
-    /// Create a new writer with very pretty output
-    pub fn pretty(writer: W) -> XmlWriter<'a, W> {
+    /// Create a new writer with `very pretty` output
+    pub fn very_pretty(writer: W) -> XmlWriter<'a, W> {
         XmlWriter {
             stack: Vec::new(),
             ns_stack: Vec::new(),
@@ -64,8 +82,28 @@ impl<'a, W: Write> XmlWriter<'a, W> {
             namespace: None,
             very_pretty: true,
             children: false,
+            newline: false,
         }
     }
+
+    /// Switch to `ccompact` mode
+    pub fn set_compact(&mut self) {
+        self.pretty = false;
+        self.very_pretty = false;
+    }
+
+    /// Switch to `pretty` mode
+    pub fn set_pretty(&mut self) {
+        self.pretty = true;
+        self.very_pretty = false;
+    }
+
+    /// Switch to `very pretty` mode
+    pub fn set_very_pretty(&mut self) {
+        self.pretty = true;
+        self.very_pretty = true;
+    }
+
 
     /// Write the DTD
     pub fn dtd(&mut self, encoding: &str) -> Result {
@@ -75,17 +113,20 @@ impl<'a, W: Write> XmlWriter<'a, W> {
     }
 
     fn indent(&mut self) -> Result {
+        let indent = self.stack.len();
         if self.very_pretty {
-            self.write("\n")?;
-            let indent = self.stack.len() * 4;
+            if self.newline {
+                self.write("\n")?;
+            } else {
+                self.newline = true;
+            }
             for _ in 0..indent {
-                self.write(" ")?;
+                self.write("\t")?;
             }
         } else if self.pretty && !self.stack.is_empty() {
             self.write("\n")?;
-            let indent = self.stack.len() * 2;
-            for _ in 0..indent {
-                self.write(" ")?;
+            for _ in 0..(indent) {
+                self.write("  ")?;
             }
         }
         Ok(())
@@ -339,7 +380,7 @@ mod tests {
             (None, "http://localhost/"),
             (Some("st"), "http://127.0.0.1/"),
         ];
-        let mut xml = XmlWriter::new(Vec::new());
+        let mut xml = XmlWriter::pretty(Vec::new());
         xml.begin_elem("OTDS");
         xml.ns_decl(&nsmap);
         xml.comment("nice to see you");
@@ -365,7 +406,7 @@ mod tests {
 
     #[test]
     fn comment() {
-        let mut xml = XmlWriter::new(Vec::new());
+        let mut xml = XmlWriter::pretty(Vec::new());
         xml.comment("comment");
 
         let actual = xml.into_inner();

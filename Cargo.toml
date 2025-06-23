@@ -1,7 +1,9 @@
 # Copyright © Piotr Zolnierek
 [package]
+resolver = "3"
+edition = "2024"
 name = "xml_writer"
-version = "0.4.1"
+version = "0.5.0"
 authors = ["Piotr Zolnierek <pzolnierek@gmail.com>"]
 description = "writes xml, not pretty, but faaast"
 license = "MIT/Apache-2.0"

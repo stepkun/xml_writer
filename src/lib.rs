@@ -3,6 +3,7 @@
 //! without any DOM or other intermediate structures. It strives to be zero allocation.
 
 #![deny(missing_docs)]
+#![deny(unsafe_code)]
 
 mod xml_writer;
 
