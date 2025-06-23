@@ -42,7 +42,7 @@ impl<'a, W: Write> fmt::Debug for XmlWriter<'a, W> {
 
 impl<'a, W: Write> XmlWriter<'a, W> {
     /// Create a new writer with `compact` output
-    pub fn compact(writer: W) -> XmlWriter<'a, W> {
+    pub fn compact_mode(writer: W) -> XmlWriter<'a, W> {
         XmlWriter {
             stack: Vec::new(),
             ns_stack: Vec::new(),
@@ -57,7 +57,7 @@ impl<'a, W: Write> XmlWriter<'a, W> {
     }
 
     /// Create a new writer with `pretty` output
-    pub fn pretty(writer: W) -> XmlWriter<'a, W> {
+    pub fn pretty_mode(writer: W) -> XmlWriter<'a, W> {
         XmlWriter {
             stack: Vec::new(),
             ns_stack: Vec::new(),
@@ -72,7 +72,7 @@ impl<'a, W: Write> XmlWriter<'a, W> {
     }
 
     /// Create a new writer with `very pretty` output
-    pub fn very_pretty(writer: W) -> XmlWriter<'a, W> {
+    pub fn very_pretty_mode(writer: W) -> XmlWriter<'a, W> {
         XmlWriter {
             stack: Vec::new(),
             ns_stack: Vec::new(),
@@ -87,19 +87,19 @@ impl<'a, W: Write> XmlWriter<'a, W> {
     }
 
     /// Switch to `ccompact` mode
-    pub fn set_compact(&mut self) {
+    pub fn set_compact_mode(&mut self) {
         self.pretty = false;
         self.very_pretty = false;
     }
 
     /// Switch to `pretty` mode
-    pub fn set_pretty(&mut self) {
+    pub fn set_pretty_mode(&mut self) {
         self.pretty = true;
         self.very_pretty = false;
     }
 
     /// Switch to `very pretty` mode
-    pub fn set_very_pretty(&mut self) {
+    pub fn set_very_pretty_mode(&mut self) {
         self.pretty = true;
         self.very_pretty = true;
     }
@@ -380,7 +380,7 @@ mod tests {
             (None, "http://localhost/"),
             (Some("st"), "http://127.0.0.1/"),
         ];
-        let mut xml = XmlWriter::pretty(Vec::new());
+        let mut xml = XmlWriter::pretty_mode(Vec::new());
         xml.begin_elem("OTDS");
         xml.ns_decl(&nsmap);
         xml.comment("nice to see you");
@@ -406,7 +406,7 @@ mod tests {
 
     #[test]
     fn comment() {
-        let mut xml = XmlWriter::pretty(Vec::new());
+        let mut xml = XmlWriter::pretty_mode(Vec::new());
         xml.comment("comment");
 
         let actual = xml.into_inner();

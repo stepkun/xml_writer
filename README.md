@@ -28,9 +28,9 @@ let actual = xml.into_inner();
 ```
 
 ## Changes
-### 0.5
+### 0.5.0
 - refactor coding to current `Rust` standards
-- forbid public access to internal variables
+- remove public access to internal variables
 - provide dedicated constructors and mode setters
 - add very pretty mode
 
