@@ -27,7 +27,7 @@ pub struct XmlWriter<'a, W: Write> {
     /// if `true` current elem has children
     children: bool,
     /// newline indicator
-    newline: bool
+    newline: bool,
 }
 
 impl<'a, W: Write> fmt::Debug for XmlWriter<'a, W> {
@@ -86,24 +86,26 @@ impl<'a, W: Write> XmlWriter<'a, W> {
         }
     }
 
-    /// Switch to `ccompact` mode
+    /// Switch to `compact` mode
+    #[inline]
     pub fn set_compact(&mut self) {
         self.pretty = false;
         self.very_pretty = false;
     }
 
     /// Switch to `pretty` mode
+    #[inline]
     pub fn set_pretty(&mut self) {
         self.pretty = true;
         self.very_pretty = false;
     }
 
     /// Switch to `very pretty` mode
+    #[inline]
     pub fn set_very_pretty(&mut self) {
         self.pretty = true;
         self.very_pretty = true;
     }
-
 
     /// Write the DTD
     pub fn dtd(&mut self, encoding: &str) -> Result {
@@ -234,7 +236,7 @@ impl<'a, W: Write> XmlWriter<'a, W> {
                 if self.very_pretty {
                     // elem without children have been self-closed
                     if !children {
-                        return Ok(())
+                        return Ok(());
                     }
                     self.indent()?;
                 }
@@ -401,7 +403,10 @@ mod tests {
         xml.flush();
 
         let actual = xml.into_inner();
-        assert_eq!(str::from_utf8(&actual).unwrap(), "<OTDS xmlns=\"http://localhost/\" xmlns:st=\"http://127.0.0.1/\">\n  <!-- nice to see you -->\n  <st:success/>\n  <st:node name=\"&quot;123&quot;\" id=\"abc\" \'unescaped\'=\"\"123\"\">&apos;text&apos;</st:node>\n  <stuff><![CDATA[blablab]]></stuff></OTDS>");
+        assert_eq!(
+            str::from_utf8(&actual).unwrap(),
+            "<OTDS xmlns=\"http://localhost/\" xmlns:st=\"http://127.0.0.1/\">\n  <!-- nice to see you -->\n  <st:success/>\n  <st:node name=\"&quot;123&quot;\" id=\"abc\" \'unescaped\'=\"\"123\"\">&apos;text&apos;</st:node>\n  <stuff><![CDATA[blablab]]></stuff></OTDS>"
+        );
     }
 
     #[test]
