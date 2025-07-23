@@ -121,7 +121,7 @@ impl<'a, W: Write> XmlWriter<'a, W> {
                 self.newline = true;
             }
             for _ in 0..indent {
-                self.write("\t")?;
+                self.write("  ")?;
             }
         } else if self.pretty && !self.stack.is_empty() {
             self.write("\n")?;
@@ -253,7 +253,14 @@ impl<'a, W: Write> XmlWriter<'a, W> {
 
     /// Begin an empty elem
     pub fn empty_elem(&mut self, name: &'a str) -> Result {
+        self.children = true;
         self.close_elem()?;
+        // change previous elem to having children
+        if let Some(mut previous) = self.stack.pop() {
+            previous.1 = true;
+            self.stack.push(previous);
+        }
+        self.children = false;
         self.indent()?;
         self.write("<")?;
         let ns = self.namespace;
@@ -316,7 +323,17 @@ impl<'a, W: Write> XmlWriter<'a, W> {
 
     /// Write a text, escapes the text automatically
     pub fn text(&mut self, text: &str) -> Result {
+        self.children = true;
         self.close_elem()?;
+        // change previous elem to having children
+        if let Some(mut previous) = self.stack.pop() {
+            previous.1 = true;
+            self.stack.push(previous);
+        }
+        self.children = false;
+        if self.very_pretty {
+            self.indent()?;
+        }
         self.escape(text, false)
     }
 
@@ -334,7 +351,17 @@ impl<'a, W: Write> XmlWriter<'a, W> {
 
     /// Write a CDATA
     pub fn cdata(&mut self, cdata: &str) -> Result {
+        self.children = true;
         self.close_elem()?;
+        // change previous elem to having children
+        if let Some(mut previous) = self.stack.pop() {
+            previous.1 = true;
+            self.stack.push(previous);
+        }
+        if self.very_pretty {
+            self.indent()?;
+        }
+        self.children = false;
         self.write("<![CDATA[")?;
         self.write(cdata)?;
         self.write("]]>")
@@ -342,8 +369,15 @@ impl<'a, W: Write> XmlWriter<'a, W> {
 
     /// Write a comment
     pub fn comment(&mut self, comment: &str) -> Result {
+        self.children = true;
         self.close_elem()?;
+        // change previous elem to having children
+        if let Some(mut previous) = self.stack.pop() {
+            previous.1 = true;
+            self.stack.push(previous);
+        }
         self.indent()?;
+        self.children = false;
         self.write("<!-- ")?;
         self.escape(comment, false)?;
         self.write(" -->")
@@ -375,7 +409,38 @@ mod tests {
     use std::str;
 
     #[test]
-    fn integration() {
+    fn compact() {
+        let nsmap = vec![
+            (None, "http://localhost/"),
+            (Some("st"), "http://127.0.0.1/"),
+        ];
+        let mut xml = XmlWriter::compact_mode(Vec::new());
+        xml.begin_elem("OTDS");
+        xml.ns_decl(&nsmap);
+        xml.comment("nice to see you");
+        xml.namespace = Some("st");
+        xml.empty_elem("success");
+        xml.begin_elem("node");
+        xml.attr_esc("name", "\"123\"");
+        xml.attr("id", "abc");
+        xml.attr("'unescaped'", "\"123\""); // this WILL generate invalid xml
+        xml.text("'text'");
+        xml.end_elem();
+        xml.namespace = None;
+        xml.begin_elem("stuff");
+        xml.cdata("blablab");
+        // xml.end_elem();
+        // xml.end_elem();
+        xml.close();
+        xml.flush();
+
+        let actual = xml.into_inner();
+        println!("{}", str::from_utf8(&actual).unwrap());
+        assert_eq!(str::from_utf8(&actual).unwrap(), "<OTDS xmlns=\"http://localhost/\" xmlns:st=\"http://127.0.0.1/\"><!-- nice to see you --><st:success/><st:node name=\"&quot;123&quot;\" id=\"abc\" \'unescaped\'=\"\"123\"\">&apos;text&apos;</st:node><stuff><![CDATA[blablab]]></stuff></OTDS>");
+    }
+
+    #[test]
+    fn pretty() {
         let nsmap = vec![
             (None, "http://localhost/"),
             (Some("st"), "http://127.0.0.1/"),
@@ -401,7 +466,39 @@ mod tests {
         xml.flush();
 
         let actual = xml.into_inner();
+        println!("{}", str::from_utf8(&actual).unwrap());
         assert_eq!(str::from_utf8(&actual).unwrap(), "<OTDS xmlns=\"http://localhost/\" xmlns:st=\"http://127.0.0.1/\">\n  <!-- nice to see you -->\n  <st:success/>\n  <st:node name=\"&quot;123&quot;\" id=\"abc\" \'unescaped\'=\"\"123\"\">&apos;text&apos;</st:node>\n  <stuff><![CDATA[blablab]]></stuff></OTDS>");
+    }
+
+    #[test]
+    fn very_pretty() {
+        let nsmap = vec![
+            (None, "http://localhost/"),
+            (Some("st"), "http://127.0.0.1/"),
+        ];
+        let mut xml = XmlWriter::very_pretty_mode(Vec::new());
+        xml.begin_elem("OTDS");
+        xml.ns_decl(&nsmap);
+        xml.comment("nice to see you");
+        xml.namespace = Some("st");
+        xml.empty_elem("success");
+        xml.begin_elem("node");
+        xml.attr_esc("name", "\"123\"");
+        xml.attr("id", "abc");
+        xml.attr("'unescaped'", "\"123\""); // this WILL generate invalid xml
+        xml.text("'text'");
+        xml.end_elem();
+        xml.namespace = None;
+        xml.begin_elem("stuff");
+        xml.cdata("blablab");
+        // xml.end_elem();
+        // xml.end_elem();
+        xml.close();
+        xml.flush();
+
+        let actual = xml.into_inner();
+        println!("{}", str::from_utf8(&actual).unwrap());
+        assert_eq!(str::from_utf8(&actual).unwrap(), "<OTDS xmlns=\"http://localhost/\" xmlns:st=\"http://127.0.0.1/\">\n  <!-- nice to see you -->\n  <st:success/>\n  <st:node name=\"&quot;123&quot;\" id=\"abc\" \'unescaped\'=\"\"123\"\">\n    &apos;text&apos;\n  </st:node>\n  <stuff>\n    <![CDATA[blablab]]>\n  </stuff>\n</OTDS>");
     }
 
     #[test]

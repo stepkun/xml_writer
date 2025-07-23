@@ -8,7 +8,7 @@ a no fluff, minimalistic, zero-copy xml writer for Rust.
 extern crate xml_writer;
 use xml_writer::XmlWriter;
 
-let mut xml = XmlWriter::very_pretty(Vec::new()); // supply any Writer, preferrably BufferedWriter
+let mut xml = XmlWriter::very_pretty_mode(Vec::new()); // supply any Writer, preferrably BufferedWriter
 xml.begin_elem("root");
     xml.comment("nice to see you");
     xml.begin_elem("node");
@@ -33,6 +33,7 @@ let actual = xml.into_inner();
 - remove public access to internal variables
 - provide dedicated constructors and mode setters
 - add very pretty mode
+- add missing license files
 
 ### 0.2.0
 - add `XmlWriter::empty_elem` to write an empty element
